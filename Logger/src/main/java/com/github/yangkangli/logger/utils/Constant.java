@@ -1,4 +1,4 @@
-package com.github.yangkangli.logger;
+package com.github.yangkangli.logger.utils;
 
 public class Constant {
 

@@ -9,7 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.github.yangkangli.logger.Constant;
+import com.github.yangkangli.logger.utils.Constant;
 import com.github.yangkangli.logger.core.BaseLogStrategy;
 import com.github.yangkangli.logger.core.ILogAdapter;
 import com.github.yangkangli.logger.utils.Utils;
@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 public class DiskAdapter implements ILogAdapter {
 
@@ -82,8 +83,6 @@ public class DiskAdapter implements ILogAdapter {
      * @param wrapper
      */
     private void writeLog(int priority, LogWrapper wrapper) {
-        Log.d("Adam", "DiskAdapter -> writeLog(" + priority + ", thread = )" + Thread.currentThread().getName());
-        Log.d("Adam", "DiskAdapter -> writeLog -> wrapper:" + wrapper.toString());
 
         FileWriter fileWriter = null;
 
@@ -91,7 +90,57 @@ public class DiskAdapter implements ILogAdapter {
             File logFile = getLogFile();
             fileWriter = new FileWriter(logFile, true);
 
-            fileWriter.append(wrapper.toString());
+            // 时间 级别/Tag:
+            String commonInfo = simpleDateFormat.format(new Date()) + " " + Utils.getLevelName(priority) + "/" + getFullTag(wrapper.strategy, wrapper.subTag) + ": ";
+
+            // 上边线
+            String topBorder = Utils.getTopBorder(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
+            fileWriter.append(commonInfo).append(topBorder).append("\n");
+
+            // 线程名称
+            if (wrapper.strategy.isShowThreadName()) {
+                String threadName = Constant.HORIZONTAL_LINE + " Thread:" + Thread.currentThread().getName();
+                fileWriter.append(commonInfo).append(threadName).append("\n");
+                // 分隔线
+                String divider = Utils.getDivider(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
+                fileWriter.append(commonInfo).append(divider).append("\n");
+            }
+
+            // 调用堆栈
+            if (wrapper.strategy.isShowStackTrace()) {
+                String level = "";
+                List<StackTraceElement> traceList = Utils.getTraceList(Thread.currentThread().getStackTrace(), wrapper.strategy.getMethodCount());
+                for (StackTraceElement element : traceList) {
+                    StringBuilder builder = new StringBuilder();
+                    builder.append(Constant.HORIZONTAL_LINE)
+                            .append(' ')
+                            .append(level)
+                            .append(Utils.getSimpleClassName(element.getClassName()))
+                            .append(".")
+                            .append(element.getMethodName())
+                            .append(" ")
+                            .append(" (")
+                            .append(element.getFileName())
+                            .append(":")
+                            .append(element.getLineNumber())
+                            .append(")");
+                    level += "    ";
+                    fileWriter.append(commonInfo).append(builder.toString()).append("\n");
+                }
+                // 分隔线
+                String divider = Utils.getDivider(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
+                fileWriter.append(commonInfo).append(divider).append("\n");
+            }
+
+            // 消息内容
+            String[] strings = Utils.splitMessage(wrapper.message);
+            for (String msg : strings) {
+                fileWriter.append(commonInfo).append(Constant.HORIZONTAL_LINE + " " + msg).append("\n");
+            }
+
+            // 下边线
+            String bottomBorder = Utils.getBottomBorder(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
+            fileWriter.append(commonInfo).append(bottomBorder).append("\n");
 
             fileWriter.flush();
             fileWriter.close();

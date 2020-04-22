@@ -6,7 +6,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.github.yangkangli.logger.ALogger;
-import com.github.yangkangli.logger.Constant;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -59,6 +58,7 @@ public class Utils {
      *
      * @param subTag
      * @param maxLength
+     * @param linkerLength
      * @return
      */
     public static String getTopBorder(String subTag, int maxLength, int linkerLength) {
@@ -76,6 +76,7 @@ public class Utils {
      *
      * @param subTag
      * @param maxLength
+     * @param linkerLength
      * @return
      */
     public static String getDivider(String subTag, int maxLength, int linkerLength) {
@@ -93,6 +94,7 @@ public class Utils {
      *
      * @param subTag
      * @param maxLength
+     * @param linkerLength
      * @return
      */
     public static String getBottomBorder(String subTag, int maxLength, int linkerLength) {
@@ -166,22 +168,22 @@ public class Utils {
      * @param priority
      * @return
      */
-    static String getLevelName(int priority) {
+    public static String getLevelName(int priority) {
         switch (priority) {
             case Constant.VERBOSE:
-                return "VERBOSE";
+                return "V";
             case Constant.DEBUG:
-                return "DEBUG";
+                return "D";
             case Constant.INFO:
-                return "INFO";
+                return "I";
             case Constant.WARN:
-                return "WARN";
+                return "W";
             case Constant.ERROR:
-                return "ERROR";
+                return "E";
             case Constant.ASSERT:
-                return "ASSERT";
+                return "A";
             default:
-                return "UNKNOWN";
+                return "U";
         }
     }
 

@@ -13,6 +13,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ALogger.d("aaa");
+        ALogger.d("MyTag", "aaa");
+
+        ALogger.d(new Exception("aaa"));
     }
 }

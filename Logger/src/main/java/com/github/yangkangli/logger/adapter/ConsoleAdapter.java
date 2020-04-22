@@ -4,12 +4,15 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.github.yangkangli.logger.core.BaseLogStrategy;
-import com.github.yangkangli.logger.Constant;
+import com.github.yangkangli.logger.utils.Constant;
 import com.github.yangkangli.logger.core.ILogAdapter;
 import com.github.yangkangli.logger.utils.Utils;
 
 import java.util.List;
 
+/**
+ * 控制台日志适配器
+ */
 public class ConsoleAdapter implements ILogAdapter {
 
     /**
@@ -103,10 +106,7 @@ public class ConsoleAdapter implements ILogAdapter {
     }
 
     /**
-     * 构造器，用于构造DefaultAdapter实例
-     *
-     * @author yangkangli
-     * @date: 2020/4/22
+     * 构造器，用于构造ConsoleAdapter实例
      */
     public static class Builder {
         /**
@@ -126,7 +126,7 @@ public class ConsoleAdapter implements ILogAdapter {
         }
 
         /**
-         * 构造DefaultAdapter
+         * 构造ConsoleAdapter
          *
          * @return
          */

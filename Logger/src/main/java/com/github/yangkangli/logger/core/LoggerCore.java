@@ -4,7 +4,7 @@ import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
 
-import com.github.yangkangli.logger.Constant;
+import com.github.yangkangli.logger.utils.Constant;
 import com.github.yangkangli.logger.strategy.DefaultLogStrategy;
 import com.github.yangkangli.logger.utils.Utils;
 
