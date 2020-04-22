@@ -19,6 +19,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -68,80 +69,80 @@ public class DiskAdapter implements ILogAdapter {
     @Override
     public void log(int priority, String subTag, String message, BaseLogStrategy strategy) {
 
-        String dateTime = simpleDateFormat.format(new Date());
+        // 时间 级别/Tag:
+        String commonInfo = simpleDateFormat.format(new Date()) + " " + Utils.getLevelName(priority) + "/" + getFullTag(strategy, subTag) + ": ";
 
-        // 得到完整的Tag
-        String tag = getFullTag(strategy, subTag);
+        List<String> lines = new ArrayList<>();
 
-        writeHandler.sendMessage(writeHandler.obtainMessage(priority, new LogWrapper(subTag, message, strategy)));
+        // 上边线
+        String topBorder = Utils.getTopBorder(subTag, strategy.getBorderMaxLength(), strategy.getLinkerLength());
+        lines.add(commonInfo + topBorder);
+
+        // 线程名称
+        if (strategy.isShowThreadName()) {
+            // 线程名
+            String threadName = Constant.HORIZONTAL_LINE + " Thread:" + Thread.currentThread().getName();
+            lines.add(commonInfo + threadName);
+            // 分隔线
+            String divider = Utils.getDivider(subTag, strategy.getBorderMaxLength(), strategy.getLinkerLength());
+            lines.add(commonInfo + divider);
+        }
+
+        // 调用堆栈
+        if (strategy.isShowStackTrace()) {
+            String level = "";
+            List<StackTraceElement> traceList = Utils.getTraceList(Thread.currentThread().getStackTrace(), strategy.getMethodCount());
+            for (StackTraceElement element : traceList) {
+                StringBuilder builder = new StringBuilder();
+                builder.append(Constant.HORIZONTAL_LINE)
+                        .append(' ')
+                        .append(level)
+                        .append(Utils.getSimpleClassName(element.getClassName()))
+                        .append(".")
+                        .append(element.getMethodName())
+                        .append(" ")
+                        .append(" (")
+                        .append(element.getFileName())
+                        .append(":")
+                        .append(element.getLineNumber())
+                        .append(")");
+                level += "    ";
+                lines.add(commonInfo + builder.toString());
+            }
+            // 分隔线
+            String divider = Utils.getDivider(subTag, strategy.getBorderMaxLength(), strategy.getLinkerLength());
+            lines.add(commonInfo + divider);
+        }
+
+        // 消息内容
+        String[] strings = Utils.splitMessage(message);
+        for (String msg : strings) {
+            lines.add(commonInfo + Constant.HORIZONTAL_LINE + " " + msg);
+        }
+
+        // 下边线
+        String bottomBorder = Utils.getBottomBorder(subTag, strategy.getBorderMaxLength(), strategy.getLinkerLength());
+        lines.add(commonInfo + bottomBorder);
+
+        // 传递给Handler
+        writeHandler.sendMessage(writeHandler.obtainMessage(priority, lines));
     }
 
     /**
      * 将日志写入文件
      *
-     * @param priority
-     * @param wrapper
+     * @param lines
      */
-    private void writeLog(int priority, LogWrapper wrapper) {
+    private void writeLog(List<String> lines) {
 
         FileWriter fileWriter = null;
 
         try {
             File logFile = getLogFile();
             fileWriter = new FileWriter(logFile, true);
-
-            // 时间 级别/Tag:
-            String commonInfo = simpleDateFormat.format(new Date()) + " " + Utils.getLevelName(priority) + "/" + getFullTag(wrapper.strategy, wrapper.subTag) + ": ";
-
-            // 上边线
-            String topBorder = Utils.getTopBorder(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
-            fileWriter.append(commonInfo).append(topBorder).append("\n");
-
-            // 线程名称
-            if (wrapper.strategy.isShowThreadName()) {
-                String threadName = Constant.HORIZONTAL_LINE + " Thread:" + Thread.currentThread().getName();
-                fileWriter.append(commonInfo).append(threadName).append("\n");
-                // 分隔线
-                String divider = Utils.getDivider(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
-                fileWriter.append(commonInfo).append(divider).append("\n");
+            for (String line : lines) {
+                fileWriter.append(line).append("\n");
             }
-
-            // 调用堆栈
-            if (wrapper.strategy.isShowStackTrace()) {
-                String level = "";
-                List<StackTraceElement> traceList = Utils.getTraceList(Thread.currentThread().getStackTrace(), wrapper.strategy.getMethodCount());
-                for (StackTraceElement element : traceList) {
-                    StringBuilder builder = new StringBuilder();
-                    builder.append(Constant.HORIZONTAL_LINE)
-                            .append(' ')
-                            .append(level)
-                            .append(Utils.getSimpleClassName(element.getClassName()))
-                            .append(".")
-                            .append(element.getMethodName())
-                            .append(" ")
-                            .append(" (")
-                            .append(element.getFileName())
-                            .append(":")
-                            .append(element.getLineNumber())
-                            .append(")");
-                    level += "    ";
-                    fileWriter.append(commonInfo).append(builder.toString()).append("\n");
-                }
-                // 分隔线
-                String divider = Utils.getDivider(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
-                fileWriter.append(commonInfo).append(divider).append("\n");
-            }
-
-            // 消息内容
-            String[] strings = Utils.splitMessage(wrapper.message);
-            for (String msg : strings) {
-                fileWriter.append(commonInfo).append(Constant.HORIZONTAL_LINE + " " + msg).append("\n");
-            }
-
-            // 下边线
-            String bottomBorder = Utils.getBottomBorder(wrapper.subTag, wrapper.strategy.getBorderMaxLength(), wrapper.strategy.getLinkerLength());
-            fileWriter.append(commonInfo).append(bottomBorder).append("\n");
-
             fileWriter.flush();
             fileWriter.close();
         } catch (Exception e) {
@@ -169,7 +170,7 @@ public class DiskAdapter implements ILogAdapter {
 
         File logFile = new File(folder, String.format("%s.log", fileNameFormat.format(new Date())));
         if (!logFile.exists()) {
-            boolean tag = logFile.createNewFile();
+            logFile.createNewFile();
         }
         return logFile;
     }
@@ -214,37 +215,13 @@ public class DiskAdapter implements ILogAdapter {
         public void handleMessage(@NonNull Message msg) {
             DiskAdapter diskAdapter = adapterReference.get();
             if (diskAdapter != null) {
-                diskAdapter.writeLog(msg.what, (LogWrapper) msg.obj);
+                diskAdapter.writeLog((List<String>) msg.obj);
             }
-        }
-    }
-
-    private static class LogWrapper {
-        protected String subTag;
-        protected String message;
-        protected BaseLogStrategy strategy;
-
-        public LogWrapper(String subTag, String message, BaseLogStrategy strategy) {
-            this.subTag = subTag;
-            this.message = message;
-            this.strategy = strategy;
-        }
-
-        @Override
-        public String toString() {
-            return "LogWrapper{" +
-                    "subTag='" + subTag + '\'' +
-                    ", message='" + message + '\'' +
-                    ", strategy=" + strategy +
-                    '}';
         }
     }
 
     /**
      * 构造器，用于构造DefaultAdapter实例
-     *
-     * @author yangkangli
-     * @date: 2020/4/22
      */
     public static class Builder {
         /**
